@@ -1,0 +1,209 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  BankerBot — Amazon Lex V2 Chatbot with Lambda Integration
+  Deploys the complete BankerBot banking assistant including:
+  - Amazon Lex V2 bot (BankerBot)
+  - Lambda function (BankingBotEnglish)
+  - IAM roles and permissions
+  - Bot alias with Lambda integration
+
+# ============================================================
+# PARAMETERS
+# ============================================================
+Parameters:
+  BotName:
+    Type: String
+    Default: BankerBot
+    Description: Name for the Amazon Lex bot
+
+  LambdaFunctionName:
+    Type: String
+    Default: BankingBotEnglish
+    Description: Name for the Lambda fulfillment function
+
+  IdleSessionTTL:
+    Type: Number
+    Default: 300
+    Description: Idle session timeout in seconds (default 5 minutes)
+
+# ============================================================
+# RESOURCES
+# ============================================================
+Resources:
+
+  # ----------------------------------------------------------
+  # IAM Role for Lambda
+  # ----------------------------------------------------------
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${LambdaFunctionName}-ExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # ----------------------------------------------------------
+  # IAM Role for Lex
+  # ----------------------------------------------------------
+  LexBotRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${BotName}-LexRole"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lexv2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonLexFullAccess
+
+  # ----------------------------------------------------------
+  # Lambda Permission — Allow Lex to invoke Lambda
+  # ----------------------------------------------------------
+  LambdaLexPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt BankingBotLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: lexv2.amazonaws.com
+
+  # ----------------------------------------------------------
+  # Lambda Function — BankingBotEnglish
+  # ----------------------------------------------------------
+  BankingBotLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref LambdaFunctionName
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      Description: Fulfillment Lambda for BankerBot Amazon Lex chatbot
+      Code:
+        ZipFile: |
+          import json
+          import random
+          import logging
+          from datetime import datetime
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def get_slot(intent_request, slot_name):
+              slots = intent_request['sessionState']['intent']['slots']
+              if slots is None or slot_name not in slots or slots[slot_name] is None:
+                  return None
+              return slots[slot_name]['value']['interpretedValue']
+
+          def get_session_attributes(intent_request):
+              return intent_request['sessionState'].get('sessionAttributes', {})
+
+          def close(intent_request, session_attributes, fulfillment_state, message):
+              intent_request['sessionState']['intent']['state'] = fulfillment_state
+              return {
+                  'sessionState': {
+                      'sessionAttributes': session_attributes,
+                      'dialogAction': {'type': 'Close'},
+                      'intent': intent_request['sessionState']['intent']
+                  },
+                  'messages': [message],
+                  'requestAttributes': intent_request.get('requestAttributes', {})
+              }
+
+          def delegate(intent_request, session_attributes):
+              return {
+                  'sessionState': {
+                      'sessionAttributes': session_attributes,
+                      'dialogAction': {'type': 'Delegate'},
+                      'intent': intent_request['sessionState']['intent']
+                  },
+                  'requestAttributes': intent_request.get('requestAttributes', {})
+              }
+
+          def get_mock_balance(account_type):
+              balances = {
+                  'checking': round(random.uniform(500, 5000), 2),
+                  'savings':  round(random.uniform(1000, 20000), 2),
+                  'credit':   round(random.uniform(0, 3000), 2),
+              }
+              return balances.get(account_type.lower(), 0.00)
+
+          def check_balance(event):
+              session_attributes = get_session_attributes(event)
+              source = event.get('invocationSource', 'FulfillmentCodeHook')
+              account_type = get_slot(event, 'accountType')
+              if source == 'DialogCodeHook':
+                  return delegate(event, session_attributes)
+              balance = get_mock_balance(account_type)
+              return close(event, session_attributes, 'Fulfilled', {
+                  'contentType': 'PlainText',
+                  'content': f"Your {account_type} account balance is ${balance:,.2f}. Is there anything else I can help you with?"
+              })
+
+          def transfer_funds(event):
+              session_attributes = get_session_attributes(event)
+              source = event.get('invocationSource', 'FulfillmentCodeHook')
+              if source == 'DialogCodeHook':
+                  return delegate(event, session_attributes)
+              source_account  = get_slot(event, 'sourceAccount')
+              target_account  = get_slot(event, 'targetAccount')
+              transfer_amount = get_slot(event, 'transferAmount')
+              return close(event, session_attributes, 'Fulfilled', {
+                  'contentType': 'PlainText',
+                  'content': f"Done! I've transferred ${float(transfer_amount):,.2f} from your {source_account} to your {target_account} account."
+              })
+
+          def welcome(event):
+              return close(event, get_session_attributes(event), 'Fulfilled', {
+                  'contentType': 'PlainText',
+                  'content': "Hello! Welcome to BankerBot. I can check your balance or transfer funds. How can I help?"
+              })
+
+          def fallback(event):
+              return close(event, get_session_attributes(event), 'Fulfilled', {
+                  'contentType': 'PlainText',
+                  'content': "I didn't understand that. I can check your balance or transfer funds — which would you like?"
+              })
+
+          HANDLERS = {
+              'WelcomeIntent':  welcome,
+              'CheckBalance':   check_balance,
+              'TransferFunds':  transfer_funds,
+              'FallbackIntent': fallback,
+          }
+
+          def lambda_handler(event, context):
+              logger.info(f"Event: {json.dumps(event)}")
+              intent_name = event['sessionState']['intent']['name']
+              handler = HANDLERS.get(intent_name)
+              if handler:
+                  return handler(event)
+              raise Exception(f"Intent '{intent_name}' not supported.")
+
+# ============================================================
+# OUTPUTS
+# ============================================================
+Outputs:
+  LambdaFunctionArn:
+    Description: ARN of the BankingBotEnglish Lambda function
+    Value: !GetAtt BankingBotLambda.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-LambdaArn"
+
+  LambdaFunctionName:
+    Description: Name of the Lambda function
+    Value: !Ref BankingBotLambda
+
+  LexBotRoleArn:
+    Description: ARN of the IAM role for Amazon Lex
+    Value: !GetAtt LexBotRole.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-LexRoleArn"

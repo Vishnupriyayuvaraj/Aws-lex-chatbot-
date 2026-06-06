@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BankerBot — AWS Amazon Lex Chatbot | Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --border: #1e2330;
+    --aws-orange: #FF9900;
+    --aws-blue: #1a9fd4;
+    --accent: #FF9900;
+    --accent2: #f7c948;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --success: #22c55e;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ---- GRID NOISE BACKGROUND ---- */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,153,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,153,0,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ---- HERO ---- */
+  .hero {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .badge-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 3px;
+    background: rgba(255,153,0,0.1);
+    border: 1px solid rgba(255,153,0,0.25);
+    color: var(--aws-orange);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .badge.blue {
+    background: rgba(26,159,212,0.1);
+    border-color: rgba(26,159,212,0.25);
+    color: var(--aws-blue);
+  }
+
+  .badge.green {
+    background: rgba(34,197,94,0.1);
+    border-color: rgba(34,197,94,0.25);
+    color: var(--success);
+  }
+
+  .hero h1 {
+    font-size: clamp(36px, 6vw, 64px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 20px;
+  }
+
+  .hero h1 span {
+    color: var(--aws-orange);
+    position: relative;
+  }
+
+  .hero-sub {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 580px;
+    line-height: 1.7;
+  }
+
+  .hero-meta {
+    margin-top: 32px;
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .meta-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .meta-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* ---- SECTION ---- */
+  section { padding: 64px 0; border-bottom: 1px solid var(--border); }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--aws-orange);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 12px;
+  }
+
+  h2 {
+    font-size: clamp(24px, 4vw, 36px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 32px;
+  }
+
+  /* ---- ARCHITECTURE ---- */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 32px;
+    font-family: var(--mono);
+    font-size: 13px;
+    overflow-x: auto;
+  }
+
+  .arch-flow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .arch-node {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    text-align: center;
+    min-width: 120px;
+  }
+
+  .arch-node.highlight {
+    border-color: var(--aws-orange);
+    background: rgba(255,153,0,0.05);
+  }
+
+  .arch-node .node-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+  .arch-node .node-name { font-size: 12px; color: var(--aws-orange); font-weight: 700; }
+  .arch-node .node-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .arch-arrow {
+    color: var(--muted);
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  /* ---- PARTS GRID ---- */
+  .parts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .part-card {
+    background: var(--surface);
+    padding: 28px;
+    position: relative;
+  }
+
+  .part-number {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+
+  .part-card h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+
+  .part-card p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .part-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .part-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  .part-stripe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--aws-orange);
+  }
+
+  /* ---- SKILLS SECTION ---- */
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .skill-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .skill-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .skill-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .skill-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ---- CONVERSATION DEMO ---- */
+  .chat-demo {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .chat-header {
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .chat-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .chat-dot.green { background: var(--success); }
+  .chat-dot.pulse { animation: pulse 2s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .chat-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .chat-body { padding: 24px 20px; display: flex; flex-direction: column; gap: 16px; }
+
+  .msg {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.bot { }
+  .msg.user { flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+    font-family: var(--mono);
+    font-weight: 700;
+  }
+
+  .bot .msg-avatar { background: rgba(255,153,0,0.15); color: var(--aws-orange); border: 1px solid rgba(255,153,0,0.3); }
+  .user .msg-avatar { background: rgba(26,159,212,0.15); color: var(--aws-blue); border: 1px solid rgba(26,159,212,0.3); }
+
+  .msg-bubble {
+    max-width: 75%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .bot .msg-bubble { background: var(--bg); border: 1px solid var(--border); color: var(--text); }
+  .user .msg-bubble { background: rgba(26,159,212,0.1); border: 1px solid rgba(26,159,212,0.2); color: var(--text); }
+
+  /* ---- CODE BLOCK ---- */
+  .code-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .code-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .code-filename {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .code-lang {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--aws-orange);
+    background: rgba(255,153,0,0.1);
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+
+  pre {
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: #a8b4c8;
+  }
+
+  .kw { color: #c792ea; }
+  .fn { color: #82aaff; }
+  .str { color: #c3e88d; }
+  .cm { color: var(--muted); font-style: italic; }
+  .num { color: var(--aws-orange); }
+
+  /* ---- LINKS ---- */
+  .links-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 40px;
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 12px 24px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-primary {
+    background: var(--aws-orange);
+    color: #000;
+  }
+
+  .btn-primary:hover { background: var(--accent2); }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .btn-outline:hover { border-color: var(--aws-orange); color: var(--aws-orange); }
+
+  /* ---- FOOTER ---- */
+  footer {
+    padding: 40px 0;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="badge-row">
+      <span class="badge">AWS Project</span>
+      <span class="badge blue">Amazon Lex V2</span>
+      <span class="badge blue">Lambda</span>
+      <span class="badge blue">CloudFormation</span>
+      <span class="badge green">✓ Completed</span>
+    </div>
+    <h1>Building <span>BankerBot</span><br>with Amazon Lex</h1>
+    <p class="hero-sub">
+      An AI-powered banking chatbot built on AWS — handling account balance queries
+      and fund transfers using Amazon Lex V2, Python Lambda, and CloudFormation IaC.
+    </p>
+    <div class="hero-meta">
+      <div class="meta-item">
+        <span class="meta-label">Series</span>
+        <span class="meta-value">4 Parts</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Platform</span>
+        <span class="meta-value">AWS</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Services</span>
+        <span class="meta-value">Lex · Lambda · CloudFormation</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Language</span>
+        <span class="meta-value">Python 3.12</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ARCHITECTURE -->
+  <section>
+    <div class="section-label">System Design</div>
+    <h2>Architecture Overview</h2>
+    <div class="arch-diagram">
+      <div class="arch-flow">
+        <div class="arch-node">
+          <span class="node-icon">👤</span>
+          <span class="node-name">User</span>
+          <span class="node-sub">Text Input</span>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node highlight">
+          <span class="node-icon">🤖</span>
+          <span class="node-name">Amazon Lex V2</span>
+          <span class="node-sub">NLU · Intents · Slots</span>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node highlight">
+          <span class="node-icon">λ</span>
+          <span class="node-name">AWS Lambda</span>
+          <span class="node-sub">BankingBotEnglish</span>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">
+          <span class="node-icon">📊</span>
+          <span class="node-name">Response</span>
+          <span class="node-sub">Balance / Confirmation</span>
+        </div>
+      </div>
+      <div style="margin-top:20px; color: var(--muted); font-size:11px; line-height:1.8;">
+        <div>→ Intents: WelcomeIntent · CheckBalance · TransferFunds · FallbackIntent</div>
+        <div>→ Slots: accountType (custom) · dateOfBirth (AMAZON.Date) · transferAmount (AMAZON.Number)</div>
+        <div>→ Deployed via: AWS CloudFormation (IaC)</div>
+        <div>→ Logs: Amazon CloudWatch</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONVERSATION DEMO -->
+  <section>
+    <div class="section-label">Live Demo Flow</div>
+    <h2>Sample Conversations</h2>
+    <div class="chat-demo">
+      <div class="chat-header">
+        <div class="chat-dot green pulse"></div>
+        <span class="chat-title">BankerBot · Amazon Lex Test Console</span>
+      </div>
+      <div class="chat-body">
+        <div class="msg user">
+          <div class="msg-avatar">U</div>
+          <div class="msg-bubble">What's my balance?</div>
+        </div>
+        <div class="msg bot">
+          <div class="msg-avatar">B</div>
+          <div class="msg-bubble">For which account would you like your balance — Checking, Savings, or Credit?</div>
+        </div>
+        <div class="msg user">
+          <div class="msg-avatar">U</div>
+          <div class="msg-bubble">Savings</div>
+        </div>
+        <div class="msg bot">
+          <div class="msg-avatar">B</div>
+          <div class="msg-bubble">For security purposes, what is your date of birth?</div>
+        </div>
+        <div class="msg user">
+          <div class="msg-avatar">U</div>
+          <div class="msg-bubble">January 1, 1990</div>
+        </div>
+        <div class="msg bot">
+          <div class="msg-avatar">B</div>
+          <div class="msg-bubble">Thank you for verifying your identity! Your Savings account balance is $8,421.50. Is there anything else I can help you with?</div>
+        </div>
+        <div class="msg user">
+          <div class="msg-avatar">U</div>
+          <div class="msg-bubble">Transfer $500 from savings to checking</div>
+        </div>
+        <div class="msg bot">
+          <div class="msg-avatar">B</div>
+          <div class="msg-bubble">Done! I've transferred $500.00 from your Savings account to your Checking account. Is there anything else I can help you with?</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PARTS -->
+  <section>
+    <div class="section-label">Project Breakdown</div>
+    <h2>4-Part Series</h2>
+    <div class="parts-grid">
+      <div class="part-card">
+        <div class="part-stripe"></div>
+        <div class="part-number">Part 01</div>
+        <h3>First Lex Bot Setup</h3>
+        <p>Created BankerBot from scratch in the Amazon Lex V2 console. Added WelcomeIntent with sample utterances and configured the FallbackIntent for graceful error handling.</p>
+        <div class="part-tags">
+          <span class="part-tag">Amazon Lex V2</span>
+          <span class="part-tag">Intents</span>
+          <span class="part-tag">Utterances</span>
+          <span class="part-tag">Bot Aliases</span>
+        </div>
+      </div>
+      <div class="part-card">
+        <div class="part-stripe"></div>
+        <div class="part-number">Part 02</div>
+        <h3>Custom Slots & CheckBalance</h3>
+        <p>Built the CheckBalance intent with a custom accountType slot (Checking, Savings, Credit) and the built-in AMAZON.Date slot for date-of-birth verification.</p>
+        <div class="part-tags">
+          <span class="part-tag">Custom Slots</span>
+          <span class="part-tag">Slot Elicitation</span>
+          <span class="part-tag">Confirmation Prompts</span>
+          <span class="part-tag">AMAZON.Date</span>
+        </div>
+      </div>
+      <div class="part-card">
+        <div class="part-stripe"></div>
+        <div class="part-number">Part 03</div>
+        <h3>AWS Lambda Integration</h3>
+        <p>Created the BankingBotEnglish Lambda function in Python 3.12 to handle dynamic fulfillment. Connected Lambda to the bot alias and tested end-to-end with CloudWatch logs.</p>
+        <div class="part-tags">
+          <span class="part-tag">AWS Lambda</span>
+          <span class="part-tag">Python 3.12</span>
+          <span class="part-tag">Fulfillment Hooks</span>
+          <span class="part-tag">CloudWatch</span>
+        </div>
+      </div>
+      <div class="part-card">
+        <div class="part-stripe"></div>
+        <div class="part-number">Part 04</div>
+        <h3>CloudFormation & TransferFunds</h3>
+        <p>Added TransferFunds intent with 3 slots. Deployed the complete infrastructure as code using AWS CloudFormation. Explored the Visual Builder and performed full resource cleanup.</p>
+        <div class="part-tags">
+          <span class="part-tag">CloudFormation</span>
+          <span class="part-tag">IaC</span>
+          <span class="part-tag">Visual Builder</span>
+          <span class="part-tag">Resource Cleanup</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CODE SNIPPET -->
+  <section>
+    <div class="section-label">Code Sample</div>
+    <h2>Lambda Handler (Python)</h2>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-filename">lambda/lambda_function.py</span>
+        <span class="code-lang">Python 3.12</span>
+      </div>
+      <pre><span class="cm"># Route intent to the correct handler</span>
+<span class="kw">def</span> <span class="fn">lambda_handler</span>(event, context):
+    intent_name = event[<span class="str">'sessionState'</span>][<span class="str">'intent'</span>][<span class="str">'name'</span>]
+
+    HANDLERS = {
+        <span class="str">'WelcomeIntent'</span>:  welcome,
+        <span class="str">'CheckBalance'</span>:   check_balance,
+        <span class="str">'TransferFunds'</span>:  transfer_funds,
+        <span class="str">'FallbackIntent'</span>: fallback,
+    }
+    <span class="kw">return</span> HANDLERS[intent_name](event)
+
+<span class="cm"># Return a mock balance after slot fulfillment</span>
+<span class="kw">def</span> <span class="fn">check_balance</span>(event):
+    account_type = get_slot(event, <span class="str">'accountType'</span>)
+    balance      = get_mock_balance(account_type)
+
+    <span class="kw">return</span> close(event, {}, <span class="str">'Fulfilled'</span>, {
+        <span class="str">'contentType'</span>: <span class="str">'PlainText'</span>,
+        <span class="str">'content'</span>: <span class="fn">f</span><span class="str">"Your {account_type} balance is ${balance:,.2f}."</span>
+    })</pre>
+    </div>
+  </section>
+
+  <!-- SKILLS -->
+  <section>
+    <div class="section-label">What I Learned</div>
+    <h2>Skills Gained</h2>
+    <div class="skills-grid">
+      <div class="skill-card">
+        <span class="skill-icon">🤖</span>
+        <div>
+          <div class="skill-name">Amazon Lex V2</div>
+          <div class="skill-sub">NLU, intents, slots, bot aliases</div>
+        </div>
+      </div>
+      <div class="skill-card">
+        <span class="skill-icon">λ</span>
+        <div>
+          <div class="skill-name">AWS Lambda</div>
+          <div class="skill-sub">Serverless Python functions</div>
+        </div>
+      </div>
+      <div class="skill-card">
+        <span class="skill-icon">📋</span>
+        <div>
+          <div class="skill-name">CloudFormation</div>
+          <div class="skill-sub">Infrastructure as Code (IaC)</div>
+        </div>
+      </div>
+      <div class="skill-card">
+        <span class="skill-icon">📊</span>
+        <div>
+          <div class="skill-name">CloudWatch</div>
+          <div class="skill-sub">Log monitoring & debugging</div>
+        </div>
+      </div>
+      <div class="skill-card">
+        <span class="skill-icon">🔑</span>
+        <div>
+          <div class="skill-name">IAM Roles</div>
+          <div class="skill-sub">Permissions & service access</div>
+        </div>
+      </div>
+      <div class="skill-card">
+        <span class="skill-icon">💬</span>
+        <div>
+          <div class="skill-name">Chatbot Design</div>
+          <div class="skill-sub">Conversation flows & UX</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LINKS -->
+  <section style="border-bottom:none;">
+    <div class="section-label">Repository</div>
+    <h2>Explore the Code</h2>
+    <p style="color:var(--muted); font-size:14px; max-width:500px;">
+      All project files, Lambda code, CloudFormation template, and step-by-step documentation are available on GitHub.
+    </p>
+    <div class="links-row">
+      <a href="https://github.com/YOUR_USERNAME/aws-lex-chatbot" class="btn btn-primary" target="_blank">
+        ⬡ View on GitHub
+      </a>
+      <a href="https://link.nextwork.org/projects/aws-ai-lex1" class="btn btn-outline" target="_blank">
+        ↗ NextWork Curriculum
+      </a>
+      <a href="./docs/part1-setup.md" class="btn btn-outline">
+        📄 Documentation
+      </a>
+    </div>
+  </section>
+
+</div>
+
+<hr class="divider">
+<footer>
+  <div class="container">
+    Built with Amazon Lex V2 · AWS Lambda · CloudFormation &nbsp;·&nbsp; NextWork AWS Series
+  </div>
+</footer>
+
+</body>
+</html>
